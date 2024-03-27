@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blockchain Text Publisher (Ethereum Sepolia Testnet)</title>
+    <style>
+      body {
+          font-family: Arial, sans-serif;
+      }
+      
+      #addBook, #booksDisplay {
+          margin-bottom: 20px;
+      }
+      
+      #booksList div {
+          margin-bottom: 10px;
+          padding: 10px;
+          border: 1px solid #ddd;
+      }
+      
+      textarea {
+          width: 100%;
+          height: 100px;
+          margin-bottom: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Blockchain Text Publisher</h1>
+    <section id="addBook">
+      <h2>Add a New Book</h2>
+      <input type="text" id="bookTitle" placeholder="Title">
+      <input type="number" id="bookCategory" placeholder="Category ID">
+      <textarea id="bookText" placeholder="Book content"></textarea>
+      <button onclick="addBook()">Add Book</button>
+    </section>
+    <section id="booksDisplay">
+      <h2>Books by Category</h2>
+      <input type="number" id="filterCategory" placeholder="Category ID to filter">
+      <button onclick="loadBooksByCategory()">Load Books</button>
+      <div id="booksList"></div>
+    </section>
+    <section id="addCategory">
+      <h2>Add a New Category</h2>
+      <input type="text" id="categoryName" placeholder="Category Name">
+      <button onclick="addCategory()">Create Category</button>
+    </section>
+  </body>
+
+  <script>
+    const contractAddress = "0x205ED7720C49771bb58086C9ECdf5C899d9A59F8"; // Ethereum Sepolia Testnet
+    const contractABI = [
+    	{
+    		"inputs": [],
+    		"stateMutability": "nonpayable",
+    		"type": "constructor"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "address",
+    				"name": "owner",
+    				"type": "address"
+    			}
+    		],
+    		"name": "OwnableInvalidOwner",
+    		"type": "error"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "address",
+    				"name": "account",
+    				"type": "address"
+    			}
+    		],
+    		"name": "OwnableUnauthorizedAccount",
+    		"type": "error"
+    	},
+    	{
+    		"anonymous": false,
+    		"inputs": [
+    			{
+    				"indexed": true,
+    				"internalType": "address",
+    				"name": "previousOwner",
+    				"type": "address"
+    			},
+    			{
+    				"indexed": true,
+    				"internalType": "address",
+    				"name": "newOwner",
+    				"type": "address"
+    			}
+    		],
+    		"name": "OwnershipTransferred",
+    		"type": "event"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "string",
+    				"name": "title",
+    				"type": "string"
+    			},
+    			{
+    				"internalType": "uint256",
+    				"name": "categoryId",
+    				"type": "uint256"
+    			},
+    			{
+    				"internalType": "string",
+    				"name": "text",
+    				"type": "string"
+    			}
+    		],
+    		"name": "addBook",
+    		"outputs": [],
+    		"stateMutability": "nonpayable",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "string",
+    				"name": "name",
+    				"type": "string"
+    			}
+    		],
+    		"name": "addCategory",
+    		"outputs": [],
+    		"stateMutability": "nonpayable",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "books",
+    		"outputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "id",
+    				"type": "uint256"
+    			},
+    			{
+    				"internalType": "string",
+    				"name": "text",
+    				"type": "string"
+    			},
+    			{
+    				"internalType": "string",
+    				"name": "title",
+    				"type": "string"
+    			},
+    			{
+    				"internalType": "uint256",
+    				"name": "categoryId",
+    				"type": "uint256"
+    			},
+    			{
+    				"internalType": "address",
+    				"name": "author",
+    				"type": "address"
+    			},
+    			{
+    				"internalType": "uint256",
+    				"name": "timestamp",
+    				"type": "uint256"
+    			},
+    			{
+    				"internalType": "int256",
+    				"name": "votes",
+    				"type": "int256"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "categories",
+    		"outputs": [
+    			{
+    				"internalType": "string",
+    				"name": "name",
+    				"type": "string"
+    			},
+    			{
+    				"internalType": "uint256",
+    				"name": "count",
+    				"type": "uint256"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "categoryId",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "getBooksByCategory",
+    		"outputs": [
+    			{
+    				"internalType": "uint256[]",
+    				"name": "",
+    				"type": "uint256[]"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "bookId",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "getVotesByBookId",
+    		"outputs": [
+    			{
+    				"internalType": "uint256[]",
+    				"name": "",
+    				"type": "uint256[]"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "address",
+    				"name": "",
+    				"type": "address"
+    			},
+    			{
+    				"internalType": "uint256",
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "hasVoted",
+    		"outputs": [
+    			{
+    				"internalType": "bool",
+    				"name": "",
+    				"type": "bool"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [],
+    		"name": "nextBookId",
+    		"outputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [],
+    		"name": "nextCategoryId",
+    		"outputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [],
+    		"name": "nextVoteId",
+    		"outputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [],
+    		"name": "owner",
+    		"outputs": [
+    			{
+    				"internalType": "address",
+    				"name": "",
+    				"type": "address"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [],
+    		"name": "renounceOwnership",
+    		"outputs": [],
+    		"stateMutability": "nonpayable",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [],
+    		"name": "rewardToken",
+    		"outputs": [
+    			{
+    				"internalType": "contract RewardToken",
+    				"name": "",
+    				"type": "address"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "address",
+    				"name": "newOwner",
+    				"type": "address"
+    			}
+    		],
+    		"name": "transferOwnership",
+    		"outputs": [],
+    		"stateMutability": "nonpayable",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "bookId",
+    				"type": "uint256"
+    			},
+    			{
+    				"internalType": "bool",
+    				"name": "upvote",
+    				"type": "bool"
+    			}
+    		],
+    		"name": "voteOnBook",
+    		"outputs": [],
+    		"stateMutability": "nonpayable",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "votes",
+    		"outputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "bookId",
+    				"type": "uint256"
+    			},
+    			{
+    				"internalType": "address",
+    				"name": "voter",
+    				"type": "address"
+    			},
+    			{
+    				"internalType": "bool",
+    				"name": "upvote",
+    				"type": "bool"
+    			},
+    			{
+    				"internalType": "uint256",
+    				"name": "timestamp",
+    				"type": "uint256"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"inputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "",
+    				"type": "uint256"
+    			},
+    			{
+    				"internalType": "uint256",
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "votesByBook",
+    		"outputs": [
+    			{
+    				"internalType": "uint256",
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"stateMutability": "view",
+    		"type": "function"
+    	}
+    ];
+    
+    async function getContractInstance() {
+        const { ethereum } = window;
+        if (!ethereum) {
+            alert("Please install MetaMask!");
+            throw new Error("Ethereum object doesn't exist!");
+        }
+    
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        return new ethers.Contract(contractAddress, contractABI, signer);
+    }
+    
+    async function addBook() {
+        const title = document.getElementById('bookTitle').value;
+        const categoryId = document.getElementById('bookCategory').value;
+        const text = document.getElementById('bookText').value;
+    
+        try {
+            const contract = await getContractInstance();
+            const transaction = await contract.addBook(title, categoryId, text);
+            await transaction.wait();
+            alert("Book added successfully!");
+        } catch (error) {
+            console.error(error);
+            alert("Failed to add the book.");
+        }
+    }
+    
+    async function loadBooksByCategory() {
+        const categoryId = document.getElementById('filterCategory').value;
+        if (!categoryId) {
+            alert("Please enter a category ID.");
+            return;
+        }
+    
+        try {
+            const contract = await getContractInstance();
+            const bookIds = await contract.getBooksByCategory(categoryId);
+            const booksListElement = document.getElementById("booksList");
+            booksListElement.innerHTML = "";
+    
+            for (const bookId of bookIds) {
+              const book = await contract.books(bookId);
+              const bookElement = document.createElement("div");
+              bookElement.innerHTML = `
+                        <h3>${book.title} (Votes: ${book.votes})</h3>
+                        <p>${book.text}</p>
+                        <p>Author: ${book.author}</p>
+                        <button onclick="voteOnBook(${book.id}, true)">Like</button>
+                        <button onclick="voteOnBook(${book.id}, false)">Dislike</button>
+                    `;
+              booksListElement.appendChild(bookElement);
+            }
+        } catch (error) {
+            console.error("Failed to load books:", error);
+            alert("Failed to load the books.");
+        }
+    }
+    
+    async function voteOnBook(bookId, upvote) {
+        try {
+            const contract = await getContractInstance();
+            const transaction = await contract.voteOnBook(bookId, upvote);
+            await transaction.wait();
+            alert(`Vote ${upvote ? "up" : "down"} submitted for book ${bookId}`);
+            loadBooksByCategory();
+        } catch (error) {
+            console.error("Failed to submit vote:", error);
+            alert("Failed to submit the vote.");
+        }
+    }
+    
+    async function addCategory() {
+        const categoryName = document.getElementById("categoryName").value;
+        if (!categoryName.trim()) {
+            alert("Please enter a category name.");
+            return;
+        }
+    
+        try {
+            const contract = await getContractInstance();
+            const transaction = await contract.addCategory(categoryName);
+            await transaction.wait();
+            alert(`Category '${categoryName}' created successfully!`);
+        } catch (error) {
+            console.error("Failed to create category:", error);
+            alert("Failed to create the category.");
+        }
+    }
+  </script>
+
+</html>
