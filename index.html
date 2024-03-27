@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Blockchain Text Publisher (Ethereum Sepolia Testnet)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js" integrity="sha512-qp190c9mQz0dBG4WDw9gh96lS4VPmgewqOn5h/i04TaANIODXxFagRTaga4nS6VkbWFraPan1BGwZh6FS48uHg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
       body {
           font-family: Arial, sans-serif;
@@ -32,13 +33,13 @@
     <section id="addBook">
       <h2>Add a New Book</h2>
       <input type="text" id="bookTitle" placeholder="Title">
-      <input type="number" id="bookCategory" placeholder="Category ID">
+      <input type="number" value=1 id="bookCategory" placeholder="Category ID">
       <textarea id="bookText" placeholder="Book content"></textarea>
       <button onclick="addBook()">Add Book</button>
     </section>
     <section id="booksDisplay">
       <h2>Books by Category</h2>
-      <input type="number" id="filterCategory" placeholder="Category ID to filter">
+      <input type="number" value=1 id="filterCategory" placeholder="Category ID to filter">
       <button onclick="loadBooksByCategory()">Load Books</button>
       <div id="booksList"></div>
     </section>
